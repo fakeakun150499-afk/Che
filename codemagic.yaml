@@ -13,20 +13,36 @@ workflows:
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build/local.properties"
 
-      - name: Fix Java and Kotlin JVM target
+      - name: Force JVM 17
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
 
-          find . -name "*.gradle" -o -name "*.gradle.kts" | while read file; do
-            sed -i '' 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$file"
-            sed -i '' 's/jvmTarget = "1.8"/jvmTarget = "17"/g' "$file"
-          done
+          cat > force-jvm17.gradle <<'EOF'
+          import org.gradle.api.tasks.compile.JavaCompile
+
+          allprojects {
+              tasks.withType(JavaCompile).configureEach {
+                  options.release.set(17)
+              }
+          }
+
+          gradle.projectsEvaluated {
+              allprojects {
+                  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                      kotlinOptions.jvmTarget = "17"
+                  }
+              }
+          }
+          EOF
 
       - name: Build APK
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
+
           chmod +x ./gradlew
-          ./gradlew clean assembleDebug
+
+          ./gradlew clean assembleDebug \
+            --init-script force-jvm17.gradle
 
     artifacts:
       - CheeseCam-v1.5-cloud-build/app/build/outputs/**/*.apk
