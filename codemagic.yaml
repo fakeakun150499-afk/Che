@@ -3,17 +3,36 @@ workflows:
     name: Android APK
     max_build_duration: 120
     instance_type: mac_mini_m2
+
+    environment:
+      java: 17
+
     scripts:
       - name: Extract Android project
         script: |
           unzip -q CheeseCam-v1.5-cloud-build-CODEMAGIC-FIXED-2.zip
+
       - name: Set Android SDK
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build/local.properties"
+
+      - name: Fix Java and Kotlin JVM target
+        script: |
+          cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
+
+          find . -name "*.gradle" -o -name "*.gradle.kts" | while read file; do
+            echo "Checking $file"
+
+            sed -i 's/sourceCompatibility = JavaVersion.VERSION_1_8/sourceCompatibility = JavaVersion.VERSION_17/g' "$file"
+            sed -i 's/targetCompatibility = JavaVersion.VERSION_1_8/targetCompatibility = JavaVersion.VERSION_17/g' "$file"
+            sed -i 's/jvmTarget = "[0-9.]*"/jvmTarget = "17"/g' "$file"
+          done
+
       - name: Build APK
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew clean assembleDebug
+
     artifacts:
       - CheeseCam-v1.5-cloud-build/app/build/outputs/**/*.apk
