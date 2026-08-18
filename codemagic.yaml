@@ -6,7 +6,7 @@ workflows:
     scripts:
       - name: Extract Android project
         script: |
-          unzip -q CheeseCam-v1.5-cloud-build-CODEMAGIC-FIXED.zip
+          unzip -q CheeseCam-v1.5-cloud-build-CODEMAGIC-FIXED-2.zip
       - name: Set Android SDK
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build/local.properties"
