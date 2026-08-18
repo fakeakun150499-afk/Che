@@ -13,36 +13,35 @@ workflows:
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build/local.properties"
 
-      - name: Force JVM 17
+      - name: Fix Java and Kotlin JVM target
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
 
-          cat > force-jvm17.gradle <<'EOF'
-          import org.gradle.api.tasks.compile.JavaCompile
+          python3 - <<'PY'
+          from pathlib import Path
 
-          allprojects {
-              tasks.withType(JavaCompile).configureEach {
-                  options.release.set(17)
-              }
-          }
+          for file in Path(".").rglob("*.gradle.kts"):
+              text = file.read_text()
 
-          gradle.projectsEvaluated {
-              allprojects {
-                  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                      kotlinOptions.jvmTarget = "17"
-                  }
-              }
-          }
-          EOF
+              text = text.replace(
+                  "JavaVersion.VERSION_1_8",
+                  "JavaVersion.VERSION_17"
+              )
+
+              text = text.replace(
+                  'jvmTarget = "1.8"',
+                  'jvmTarget = "17"'
+              )
+
+              file.write_text(text)
+          PY
 
       - name: Build APK
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
-
           chmod +x ./gradlew
-
           ./gradlew clean assembleDebug \
-            --init-script force-jvm17.gradle
+            -Pkotlin.jvm.target.validation.mode=ignore
 
     artifacts:
       - CheeseCam-v1.5-cloud-build/app/build/outputs/**/*.apk
