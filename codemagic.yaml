@@ -2,7 +2,7 @@ workflows:
   android-build:
     name: Android APK
     max_build_duration: 120
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
 
     scripts:
       - name: Extract Android project
@@ -17,54 +17,10 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
 
-          python3 - <<'PY'
-          from pathlib import Path
-
-          files = [
-              Path("app/build.gradle.kts"),
-              Path("build.gradle.kts"),
-          ]
-
-          for file in files:
-              if not file.exists():
-                  continue
-
-              text = file.read_text()
-
-              text = text.replace(
-                  'JavaVersion.VERSION_1_8',
-                  'JavaVersion.VERSION_17'
-              )
-
-              text = text.replace(
-                  'jvmTarget = "1.8"',
-                  'jvmTarget = "17"'
-              )
-
-              text = text.replace(
-                  'jvmTarget = "1.8"',
-                  'jvmTarget = "17"'
-              )
-
-              file.write_text(text)
-
-          app = Path("app/build.gradle.kts")
-
-          if app.exists():
-              text = app.read_text()
-
-              if 'jvmTarget = "17"' not in text:
-                  text += '''
-
-          import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-          tasks.withType<KotlinCompile>().configureEach {
-              kotlinOptions.jvmTarget = "17"
-          }
-          '''
-
-              app.write_text(text)
-          PY
+          find . -name "*.gradle" -o -name "*.gradle.kts" | while read file; do
+            sed -i '' 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$file"
+            sed -i '' 's/jvmTarget = "1.8"/jvmTarget = "17"/g' "$file"
+          done
 
       - name: Build APK
         script: |
