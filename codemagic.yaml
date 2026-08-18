@@ -4,9 +4,6 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
 
-    environment:
-      java: 17
-
     scripts:
       - name: Extract Android project
         script: |
@@ -16,15 +13,19 @@ workflows:
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build/local.properties"
 
-      - name: Fix Java and Kotlin
+      - name: Fix Java and Kotlin JVM target
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
 
-          find . \( -name "*.gradle" -o -name "*.gradle.kts" \) -type f -print0 |
-          while IFS= read -r -d '' file; do
-            perl -pi -e 's/JavaVersion\.VERSION_1_8/JavaVersion.VERSION_17/g' "$file"
-            perl -pi -e 's/jvmTarget\s*=\s*["'\'']1\.8["'\'']/jvmTarget = "17"/g' "$file"
-          done
+          find . -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | \
+          xargs -0 perl -pi -e '
+            s/JavaVersion\.VERSION_1_8/JavaVersion.VERSION_17/g;
+            s/JavaVersion\.VERSION_8/JavaVersion.VERSION_17/g;
+            s/sourceCompatibility\s*=\s*["'\'']1\.8["'\'']/sourceCompatibility = "17"/g;
+            s/targetCompatibility\s*=\s*["'\'']1\.8["'\'']/targetCompatibility = "17"/g;
+            s/jvmTarget\s*=\s*["'\'']1\.8["'\'']/jvmTarget = "17"/g;
+            s/jvmTarget\s*=\s*["'\'']8["'\'']/jvmTarget = "17"/g;
+          '
 
       - name: Build APK
         script: |
