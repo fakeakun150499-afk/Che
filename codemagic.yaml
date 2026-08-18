@@ -2,7 +2,7 @@ workflows:
   android-build:
     name: Android APK
     max_build_duration: 120
-    instance_type: mac_mini_m2
+    instance_type: linux_x2
 
     scripts:
       - name: Extract Android project
@@ -17,15 +17,54 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
 
-          find . -type f \( -name "*.gradle" -o -name "*.gradle.kts" \) -print0 | \
-          xargs -0 perl -pi -e '
-            s/JavaVersion\.VERSION_1_8/JavaVersion.VERSION_17/g;
-            s/JavaVersion\.VERSION_8/JavaVersion.VERSION_17/g;
-            s/sourceCompatibility\s*=\s*["'\'']1\.8["'\'']/sourceCompatibility = "17"/g;
-            s/targetCompatibility\s*=\s*["'\'']1\.8["'\'']/targetCompatibility = "17"/g;
-            s/jvmTarget\s*=\s*["'\'']1\.8["'\'']/jvmTarget = "17"/g;
-            s/jvmTarget\s*=\s*["'\'']8["'\'']/jvmTarget = "17"/g;
-          '
+          python3 - <<'PY'
+          from pathlib import Path
+
+          files = [
+              Path("app/build.gradle.kts"),
+              Path("build.gradle.kts"),
+          ]
+
+          for file in files:
+              if not file.exists():
+                  continue
+
+              text = file.read_text()
+
+              text = text.replace(
+                  'JavaVersion.VERSION_1_8',
+                  'JavaVersion.VERSION_17'
+              )
+
+              text = text.replace(
+                  'jvmTarget = "1.8"',
+                  'jvmTarget = "17"'
+              )
+
+              text = text.replace(
+                  'jvmTarget = "1.8"',
+                  'jvmTarget = "17"'
+              )
+
+              file.write_text(text)
+
+          app = Path("app/build.gradle.kts")
+
+          if app.exists():
+              text = app.read_text()
+
+              if 'jvmTarget = "17"' not in text:
+                  text += '''
+
+          import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+          tasks.withType<KotlinCompile>().configureEach {
+              kotlinOptions.jvmTarget = "17"
+          }
+          '''
+
+              app.write_text(text)
+          PY
 
       - name: Build APK
         script: |
