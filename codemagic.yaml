@@ -16,16 +16,14 @@ workflows:
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build/local.properties"
 
-      - name: Fix Java and Kotlin JVM target
+      - name: Fix Java and Kotlin
         script: |
           cd "$CM_BUILD_DIR/CheeseCam-v1.5-cloud-build"
 
-          find . -name "*.gradle" -o -name "*.gradle.kts" | while read file; do
-            echo "Checking $file"
-
-            sed -i 's/sourceCompatibility = JavaVersion.VERSION_1_8/sourceCompatibility = JavaVersion.VERSION_17/g' "$file"
-            sed -i 's/targetCompatibility = JavaVersion.VERSION_1_8/targetCompatibility = JavaVersion.VERSION_17/g' "$file"
-            sed -i 's/jvmTarget = "[0-9.]*"/jvmTarget = "17"/g' "$file"
+          find . \( -name "*.gradle" -o -name "*.gradle.kts" \) -type f -print0 |
+          while IFS= read -r -d '' file; do
+            perl -pi -e 's/JavaVersion\.VERSION_1_8/JavaVersion.VERSION_17/g' "$file"
+            perl -pi -e 's/jvmTarget\s*=\s*["'\'']1\.8["'\'']/jvmTarget = "17"/g' "$file"
           done
 
       - name: Build APK
